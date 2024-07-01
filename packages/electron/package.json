@@ -1,0 +1,31 @@
+{
+  "name": "InnoTe",
+  "version": "0.1.7",
+  "private": true,
+  "author": {
+    "name": "yuchiXiong",
+    "email": "yuchi.xiong@foxmail.com"
+  },
+  "description": "InnoTe is a desktop application for Markdown, which supports markdown preview, export to PDF, export to HTML, and more.",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "tsc src/main.ts src/preload.ts && electron .",
+    "start": "tsc src/main.ts && electron-forge start",
+    "package": "tsc src/main.ts && electron-forge package",
+    "make": "tsc src/main.ts && electron-forge make"
+  },
+  "dependencies": {
+    "core-js": "^3.32.0",
+    "electron-squirrel-startup": "^1.0.0"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.3.1",
+    "@electron-forge/maker-dmg": "^7.3.1",
+    "@electron-forge/maker-squirrel": "^7.3.1",
+    "@electron-forge/maker-zip": "^7.3.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.3.1",
+    "@electron-forge/plugin-fuses": "^7.3.1",
+    "@electron/fuses": "^1.8.0",
+    "electron": "^29.1.6"
+  }
+}

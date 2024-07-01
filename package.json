@@ -1,0 +1,23 @@
+{
+  "name": "Innote",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "pnpm run -C packages/editor dev && pnpm run -C packages/electron dev",
+    "dev:editor": "pnpm run -C packages/editor dev",
+    "dev:electron": "pnpm run -C packages/electron dev"
+  },
+  "author": {
+    "name": "yuchiXiong",
+    "email": "yuchi.xiong@foxmail.com"
+  },
+  "description": "InnoTe is a desktop application for Markdown, which supports markdown preview, export to PDF, export to HTML, and more.",
+  "dependencies": {
+    "@types/node": "20.4.2",
+    "eslint": "8.45.0",
+    "typescript": "5.1.6"
+  },
+  "devDependencies": {},
+  "keywords": [],
+  "license": "ISC"
+}
