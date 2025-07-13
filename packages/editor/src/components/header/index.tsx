@@ -98,7 +98,8 @@ const Header = (props: IHeaderProps) => {
           'w-full bg-white',
           'shadow-md',
           'select-none',
-          'webkitAppRegionDrag'
+          'webkitAppRegionDrag',
+          'border-b border-gray-200'
         )
       }
       onDoubleClick={toggleMaximize}
