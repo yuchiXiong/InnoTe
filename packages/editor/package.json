@@ -2,6 +2,11 @@
   "name": "innote-editor",
   "version": "0.1.0",
   "private": true,
+  "description": "InnoTe is a desktop application for Markdown, which supports markdown preview, export to PDF, export to HTML, and more.",
+  "author": {
+    "name": "yuchiXiong",
+    "email": "yuchi.xiong@foxmail.com"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -57,12 +62,14 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@types/node": "24.0.13",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "eslint-config-next": "14.1.3",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
+    "typescript": "5.1.6",
     "use-resize-observer": "^9.1.0"
   }
 }
