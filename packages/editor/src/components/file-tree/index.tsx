@@ -10,11 +10,15 @@ import { CURRENT_OPEN_FILE_PATH, OPENED_DIRECTORIES_KEY } from "@/constants/stor
 import { MouseEvent, useEffect, useMemo, useState } from "react";
 
 export interface IFileTreeProps {
-  treeData: (TreeViewElement & {
+  treeData: {
+    id: string;
+    name: string;
+    isSelectable?: boolean;
     isDirectory: boolean;
+    isOpen: boolean;
     path: string;
     children?: IFileTreeProps["treeData"];
-  })[];
+  }[];
   afterFileOpen: (file: { name: string; path: string }, content: string) => void;
   reFresh: () => void;
   expandedItemMap: Record<string, boolean>;

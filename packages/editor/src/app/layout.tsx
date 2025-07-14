@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
-import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
 import { cn } from "../lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerTaster } from "@/components/ui/sonner"
 import { InnoTeProvider } from "@/stores";
-const fontSans = FontSans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-})
 
 export const metadata: Metadata = {
   title: "InnoTe Editor",
@@ -24,7 +19,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn(
         "min-h-screen bg-background font-sans antialiased",
-        fontSans.variable
       )}>
         <InnoTeProvider>
           {children}

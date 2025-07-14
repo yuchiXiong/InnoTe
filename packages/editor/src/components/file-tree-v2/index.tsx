@@ -7,83 +7,14 @@ import { ScrollArea } from "@radix-ui/react-scroll-area"
 import React, { SetStateAction, useState } from "react"
 import { FileNode } from "../editor/index.v2"
 import { cn } from "@/lib/utils"
-
-// 文件树节点组件
-const FileTreeNode = ({
-  node,
-  onSelect,
-  onDelete,
-  selectedId,
-  onToggle,
-}: {
-  node: FileNode
-  onSelect: (node: FileNode) => void
-  onDelete: (id: string) => void
-  selectedId: string | null
-  onToggle: (id: string) => void
-}) => {
-  const isSelected = selectedId === node.id
-
-  return (
-    <div>
-      <div
-        className={cn(
-          "flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-gray-100 group",
-          isSelected && "bg-blue-50 text-blue-700",
-        )}
-        onClick={() => {
-          if (node.type === "folder") {
-            onToggle(node.id)
-          } else {
-            onSelect(node)
-          }
-        }}
-      >
-        {node.type === "folder" ? (
-          <>
-            {node.isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            {node.isOpen ? <FolderOpen className="h-4 w-4" /> : <Folder className="h-4 w-4" />}
-          </>
-        ) : (
-          <>
-            <div className="w-4" />
-            <FileText className="h-4 w-4" />
-          </>
-        )}
-        <span className="flex-1 text-sm truncate">{node.name}</span>
-        {node.type === "file" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(node.id)
-            }}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-      {node.type === "folder" && node.isOpen && node.children && (
-        <div className="ml-4">
-          {node.children.map((child) => (
-            <FileTreeNode
-              key={child.id}
-              node={child}
-              onSelect={onSelect}
-              onDelete={onDelete}
-              selectedId={selectedId}
-              onToggle={onToggle}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+import { IFileTreeItem } from "../file-tree"
+import FileTreeNode from './node'
+import { getFileList } from "@/actions/files"
 
 interface IFileTreeProps {
+  fileList: IFileTreeItem[];
+  setFileList: (fileList: IFileTreeItem[]) => void
+
   files: FileNode[],
   setFiles: React.Dispatch<SetStateAction<FileNode[]>>
   selectedFile: FileNode | null,
@@ -91,6 +22,9 @@ interface IFileTreeProps {
 }
 
 const FileTree: React.FC<IFileTreeProps> = ({
+  fileList,
+  setFileList,
+
   files,
   setFiles,
   selectedFile,
@@ -158,25 +92,37 @@ const FileTree: React.FC<IFileTreeProps> = ({
   }
 
   // 切换文件夹展开状态
-  const toggleFolder = (folderId: string) => {
-    const toggleNode = (nodes: FileNode[]): FileNode[] => {
-      return nodes.map((node) => {
+  const toggleFolder = async (folderId: string) => {
+    console.log('before toggleFolder', fileList, folderId)
+    const toggleNode = async (nodes: IFileTreeItem[]): Promise<IFileTreeItem[]> => {
+      return await Promise.all(nodes.map(async (node) => {
+        console.log('toggleFolder', node.id, folderId)
+
         if (node.id === folderId) {
-          return { ...node, isOpen: !node.isOpen }
+          console.log('toggleFolder 找到了', node.id, folderId)
+          // 将一个文件夹展开时，需要拉取这个目录下的文件列表
+          const children = await getFileList(folderId);
+          return { ...node, isOpen: !node.isOpen, children }
         }
+
         if (node.children) {
-          return { ...node, children: toggleNode(node.children) }
+          const children = await toggleNode(node.children);
+          return { ...node, children }
         }
         return node
-      })
+      }))
     }
 
-    setFiles(toggleNode(files))
+    const newFileList = await toggleNode(fileList);
+
+    setFileList(newFileList)
+    console.log('after toggleFolder', toggleNode(fileList), folderId)
   }
 
   return (
-    <div className="w-full h-full bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-full h-full border bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200">
+        {/* 顶部工具栏 */}
         <div className="flex items-center justify-between my-[1.5px]">
           <h2 className="font-semibold text-gray-900">文件管理</h2>
           <Button variant="ghost" size="sm" onClick={() => setShowNewFileInput(true)}>
@@ -184,6 +130,7 @@ const FileTree: React.FC<IFileTreeProps> = ({
           </Button>
         </div>
 
+        {/* 创建文件的录入框 */}
         {showNewFileInput && (
           <div className="flex gap-2">
             <Input
@@ -207,11 +154,13 @@ const FileTree: React.FC<IFileTreeProps> = ({
         )}
       </div>
 
-      <ScrollArea className="flex-1 p-2">
-        {files.map((file) => (
+      <ScrollArea className="flex-1 p-2 overflow-y-auto">
+        {fileList.map((file) => (
           <FileTreeNode
             key={file.id}
-            node={file}
+            file={file}
+            setFileList={setFileList}
+
             onSelect={handleFileSelect}
             onDelete={deleteFile}
             selectedId={selectedFile?.id || null}
@@ -220,7 +169,6 @@ const FileTree: React.FC<IFileTreeProps> = ({
         ))}
       </ScrollArea>
     </div>
-
   )
 }
 

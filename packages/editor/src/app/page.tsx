@@ -13,6 +13,7 @@ import { Textarea } from "@icon-park/react";
 import { ScrollBar } from "@/components/ui/scroll-area";
 import { ContentRenderer } from "@/components/content-renderer";
 import { cn } from "@/lib/utils";
+import { getFileList } from "@/actions/files";
 
 export interface FileNode {
   id: string
@@ -32,13 +33,17 @@ export default function Home() {
   const currentOpenFile = useSelector((state) => state.currentOpenFile);
   const fileList = useSelector((state) => state.fileList);
 
-  // console.log('currentDirectory', currentDirectory, 'currentOpenFile', currentOpenFile, 'fileList', fileList)
+  console.log('currentDirectory', currentDirectory, 'currentOpenFile', currentOpenFile, 'fileList', fileList)
 
   const [defaultLayout, setDefaultLayout] = useState<[number, number]>([25, 75]);
   const [isReady, setIsReady] = useState(false);
 
-  const setCurrentDirectory = (directory: string) => {
+  const setCurrentDirectory = async (directory: string) => {
     dispatch({ type: 'SET_CURRENT_DIRECTORY', currentDirectory: directory });
+    const fileList = await getFileList(directory)
+    console.log('setCurrentOpenFile', fileList)
+    setFileList([...fileList])
+    saveOpenedDirectoryInfo(fileList)
   }
 
   const setCurrentOpenFile = (file: {
@@ -137,6 +142,9 @@ export default function Home() {
             )}>
               {/* 左侧文件树 */}
               <FileTree
+                fileList={fileList}
+                setFileList={setFileList}
+
                 files={files}
                 setFiles={setFiles}
                 selectedFile={selectedFile}
