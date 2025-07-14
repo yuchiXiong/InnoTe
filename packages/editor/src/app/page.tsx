@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client"
 
 import Header from "@/components/header";
@@ -175,6 +176,7 @@ export default function Home() {
                   )}>
                     <img
                       src={'atom://innote?filepath=' + encodeURIComponent(currentOpenFile.path)}
+                      alt=''
                       className={cn(
                         'w-full',
                         'rounded',
@@ -184,6 +186,7 @@ export default function Home() {
                     />
                     <img
                       src={'atom://innote?filepath=' + encodeURIComponent(currentOpenFile.path)}
+                      alt=''
                       className={cn(
                         'max-w-full max-h-full',
                         'rounded',
