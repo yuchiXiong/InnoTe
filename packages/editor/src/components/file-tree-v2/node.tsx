@@ -4,13 +4,12 @@ import { ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Trash2 } from 
 import { Button } from "../ui/button"
 import React from "react"
 import { IFileTreeItem } from "../file-tree"
-import FileTree from "."
 
 export interface IFileTreeNodeProps {
   file: IFileTreeItem
   setFileList: (fileList: IFileTreeItem[]) => void
 
-  onSelect: (node: FileNode) => void
+  onSelect: (node: IFileTreeItem) => void
   onDelete: (id: string) => void
   selectedId: string | null
   onToggle: (id: string) => void

@@ -13,7 +13,9 @@ import { getFileList } from "@/actions/files"
 
 interface IFileTreeProps {
   fileList: IFileTreeItem[];
-  setFileList: (fileList: IFileTreeItem[]) => void
+  setFileList: (fileList: IFileTreeItem[]) => void;
+  currentOpenFile: IFileTreeItem;
+  setCurrentOpenFile: (file: IFileTreeItem) => void;
 
   files: FileNode[],
   setFiles: React.Dispatch<SetStateAction<FileNode[]>>
@@ -24,6 +26,8 @@ interface IFileTreeProps {
 const FileTree: React.FC<IFileTreeProps> = ({
   fileList,
   setFileList,
+  currentOpenFile,
+  setCurrentOpenFile,
 
   files,
   setFiles,
@@ -93,13 +97,13 @@ const FileTree: React.FC<IFileTreeProps> = ({
 
   // 切换文件夹展开状态
   const toggleFolder = async (folderId: string) => {
-    console.log('before toggleFolder', fileList, folderId)
+    // console.log('before toggleFolder', fileList, folderId)
     const toggleNode = async (nodes: IFileTreeItem[]): Promise<IFileTreeItem[]> => {
       return await Promise.all(nodes.map(async (node) => {
-        console.log('toggleFolder', node.id, folderId)
+        // console.log('toggleFolder', node.id, folderId)
 
         if (node.id === folderId) {
-          console.log('toggleFolder 找到了', node.id, folderId)
+          // console.log('toggleFolder 找到了', node.id, folderId)
           // 将一个文件夹展开时，需要拉取这个目录下的文件列表
           const children = await getFileList(folderId);
           return { ...node, isOpen: !node.isOpen, children }
@@ -116,7 +120,7 @@ const FileTree: React.FC<IFileTreeProps> = ({
     const newFileList = await toggleNode(fileList);
 
     setFileList(newFileList)
-    console.log('after toggleFolder', toggleNode(fileList), folderId)
+    // console.log('after toggleFolder', toggleNode(fileList), folderId)
   }
 
   return (
@@ -161,7 +165,7 @@ const FileTree: React.FC<IFileTreeProps> = ({
             file={file}
             setFileList={setFileList}
 
-            onSelect={handleFileSelect}
+            onSelect={setCurrentOpenFile}
             onDelete={deleteFile}
             selectedId={selectedFile?.id || null}
             onToggle={toggleFolder}

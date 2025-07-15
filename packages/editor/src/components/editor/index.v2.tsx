@@ -1,7 +1,6 @@
 "use client"
-import { Badge } from "lucide-react"
 import { Input } from "../ui/input"
-import React, { SetStateAction, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -19,7 +18,6 @@ import {
   Link,
   Video,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
@@ -29,17 +27,31 @@ import TaskItem from "@tiptap/extension-task-item"
 import Image from "@tiptap/extension-image"
 import LinkExtension from "@tiptap/extension-link"
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
+import { TableKit } from '@tiptap/extension-table'
 import { common, createLowlight } from "lowlight"
-import { Node, mergeAttributes } from "@tiptap/core"
-import { FileNode } from "./index.v2";
-import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import { Node, RawCommands, mergeAttributes } from "@tiptap/core"
+import { ScrollArea } from "../ui/scroll-area";
+import { getFileContent, saveFileContent } from "@/actions/files";
+import { Converter } from 'showdown';
+import { IFileTreeItem } from "../file-tree";
+import { Markdown } from 'tiptap-markdown'
+import { useDebounce } from "react-use";
 
-export interface IEditroProps {
-  files: FileNode[],
-  setFiles: React.Dispatch<SetStateAction<FileNode[]>>
-  selectedFile: FileNode | null,
-  setSelectedFile: React.Dispatch<SetStateAction<FileNode | null>>
+export interface IEditorProps {
+  currentOpenFile: IFileTreeItem,
 }
+
+const converter = new Converter({
+  simplifiedAutoLink: true,
+  excludeTrailingPunctuationFromURLs: true,
+  strikethrough: true,
+  tables: true,
+  tasklists: true,
+  simpleLineBreaks: true,
+  openLinksInNewWindow: true,
+  omitExtraWLInCodeBlocks: true,
+  backslashEscapesHTMLTags: true,
+})
 
 // 视频嵌入白名单
 const IFRAME_WHITELIST = [
@@ -156,15 +168,13 @@ const IframeExtension = Node.create({
 
   addCommands() {
     return {
-      setIframe:
-        (options) =>
-          ({ commands }) => {
-            return commands.insertContent({
-              type: this.name,
-              attrs: options,
-            })
-          },
-    }
+      setIframe: (options: Record<string, any>) => ({ commands }: { commands: RawCommands }) => {
+        return commands.insertContent({
+          type: this.name,
+          attrs: options,
+        })
+      },
+    } as Partial<RawCommands>
   },
 })
 
@@ -176,31 +186,6 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
   // 在 TiptapEditor 函数开始处添加状态
   const [showSource, setShowSource] = useState(false)
 
-  // 添加转换HTML为Markdown的简单函数
-  const htmlToMarkdown = (html: string): string => {
-    return html
-      .replace(/<h1[^>]*>(.*?)<\/h1>/g, "# $1")
-      .replace(/<h2[^>]*>(.*?)<\/h2>/g, "## $1")
-      .replace(/<h3[^>]*>(.*?)<\/h3>/g, "### $1")
-      .replace(/<strong[^>]*>(.*?)<\/strong>/g, "**$1**")
-      .replace(/<em[^>]*>(.*?)<\/em>/g, "*$1*")
-      .replace(/<code[^>]*>(.*?)<\/code>/g, "`$1`")
-      .replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/g, "[$2]($1)")
-      .replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/g, "![$2]($1)")
-      .replace(/<ul[^>]*>/g, "")
-      .replace(/<\/ul>/g, "")
-      .replace(/<ol[^>]*>/g, "")
-      .replace(/<\/ol>/g, "")
-      .replace(/<li[^>]*>(.*?)<\/li>/g, "- $1")
-      .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/g, "> $1")
-      .replace(/<pre[^>]*><code[^>]*class="language-([^"]*)"[^>]*>(.*?)<\/code><\/pre>/gs, "```$1\n$2\n```")
-      .replace(/<p[^>]*>(.*?)<\/p>/g, "$1\n")
-      .replace(/<br\s*\/?>/g, "\n")
-      .replace(/<[^>]*>/g, "") // 移除剩余的HTML标签
-      .replace(/\n\s*\n/g, "\n\n") // 清理多余的空行
-      .trim()
-  }
-
   // 切换原文显示
   const toggleSource = () => {
     setShowSource(!showSource)
@@ -209,6 +194,7 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
+      TableKit,
       StarterKit.configure({
         codeBlock: false, // 禁用默认的代码块，使用带语法高亮的版本
       }),
@@ -238,10 +224,11 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
         },
       }),
       IframeExtension,
+      Markdown
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML())
+      onChange(editor.storage['markdown'].getMarkdown())
     },
     editorProps: {
       attributes: {
@@ -252,8 +239,9 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
 
   // 当外部内容变化时更新编辑器
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content)
+    if (editor && content !== editor.storage['markdown'].getMarkdown()) {
+      const html = converter.makeHtml(content)
+      editor.commands.setContent(html);
     }
   }, [content, editor])
 
@@ -430,7 +418,7 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText(htmlToMarkdown(content))
+                      navigator.clipboard.writeText(content)
                       // 这里可以添加复制成功的提示
                     }}
                   >
@@ -438,7 +426,7 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
                   </Button>
                 </div>
                 <pre className="whitespace-pre-wrap text-sm text-gray-600 font-mono leading-relaxed h-full">
-                  {htmlToMarkdown(content)}
+                  {content}
                 </pre>
               </div>
             </div>
@@ -451,72 +439,78 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
   )
 }
 
-const Editor: React.FC<IEditroProps> = ({
-  files,
-  setFiles,
-  selectedFile,
-  setSelectedFile
+const Editor: React.FC<IEditorProps> = ({
+  currentOpenFile
 }) => {
+
+  const [content, setContent] = useState('');
+  const [debounceFnFlag, setDebounceFnFlag] = useState<number>(0);
+
+  useDebounce(() => {
+    if (debounceFnFlag === 0) return;
+
+    saveFileContent(currentOpenFile.path, content);
+  }, 200, [debounceFnFlag, content]);
+
+  const debounceSaveFileContent = useCallback((content: string) => {
+    setDebounceFnFlag(debounceFnFlag => debounceFnFlag + 1);
+    setContent(content);
+  }, []);
 
   // 更新文件内容
   const updateFileContent = (content: string) => {
-    if (!selectedFile) return
+    if (!currentOpenFile) return
 
-    const updateFile = (nodes: FileNode[]): FileNode[] => {
-      return nodes.map((node) => {
-        if (node.id === selectedFile.id) {
-          return { ...node, content }
-        }
-        if (node.children) {
-          return { ...node, children: updateFile(node.children) }
-        }
-        return node
-      })
-    }
-
-    setFiles(updateFile(files))
-    setSelectedFile({ ...selectedFile, content })
+    debounceSaveFileContent(content);
   }
 
   // 更新文件标题
-  const updateFileTitle = (title: string) => {
-    if (!selectedFile) return
+  // const updateFileTitle = (title: string) => {
+  //   if (!selectedFile) return
 
-    const updateFile = (nodes: FileNode[]): FileNode[] => {
-      return nodes.map((node) => {
-        if (node.id === selectedFile.id) {
-          return { ...node, title }
-        }
-        if (node.children) {
-          return { ...node, children: updateFile(node.children) }
-        }
-        return node
+  //   const updateFile = (nodes: FileNode[]): FileNode[] => {
+  //     return nodes.map((node) => {
+  //       if (node.id === selectedFile.id) {
+  //         return { ...node, title }
+  //       }
+  //       if (node.children) {
+  //         return { ...node, children: updateFile(node.children) }
+  //       }
+  //       return node
+  //     })
+  //   }
+
+  //   setFiles(updateFile(files))
+  //   setSelectedFile({ ...selectedFile, title })
+  // }
+
+  useEffect(() => {
+    if (currentOpenFile.path) {
+      getFileContent(currentOpenFile.path).then(res => {
+        setContent(res);
       })
     }
-
-    setFiles(updateFile(files))
-    setSelectedFile({ ...selectedFile, title })
-  }
+  }, [currentOpenFile]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {selectedFile ? (
+      {currentOpenFile ? (
         <>
           {/* 顶部标题栏 */}
           <div className="bg-white border-b border-gray-200">
             <div className="flex items-center justify-between">
               <Input
-                value={selectedFile.title || ""}
-                onChange={(e) => updateFileTitle(e.target.value)}
+                value={currentOpenFile.name.replace('.md', '') || ""}
+                // onChange={(e) => updateFileTitle(e.target.value)}
                 className="text-2xl m-4 font-semibold border-none shadow-none px-0 focus-visible:ring-0 bg-transparent"
-                placeholder="文档标题"
+                placeholder="title"
               />
             </div>
           </div>
 
           {/* 编辑器区域 */}
           <div className="flex-1 flex bg-white overflow-hidden">
-            <TiptapEditor content={selectedFile.content || ""} onChange={updateFileContent} />
+            <TiptapEditor content={content || ""} onChange={updateFileContent} />
           </div>
         </>
       ) : (

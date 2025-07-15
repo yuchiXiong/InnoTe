@@ -47,10 +47,7 @@ export default function Home() {
     saveOpenedDirectoryInfo(fileList)
   }
 
-  const setCurrentOpenFile = (file: {
-    path: string;
-    name: string;
-  }) => {
+  const setCurrentOpenFile = (file: IFileTreeItem) => {
     dispatch({ type: 'SET_CURRENT_OPEN_FILE', currentOpenFile: file });
   }
 
@@ -145,11 +142,11 @@ export default function Home() {
               <FileTree
                 fileList={fileList}
                 setFileList={setFileList}
+                currentOpenFile={currentOpenFile}
+                setCurrentOpenFile={setCurrentOpenFile}
 
                 files={files}
                 setFiles={setFiles}
-                selectedFile={selectedFile}
-                setSelectedFile={setSelectedFile}
               />
 
             </div>
@@ -157,12 +154,7 @@ export default function Home() {
           <ResizableHandle withHandle />
           {currentOpenFile.name.endsWith('.md') ? (
             <ResizablePanel className="flex flex-1" defaultSize={defaultLayout[1]}>
-              <Editor
-                files={files}
-                setFiles={setFiles}
-                selectedFile={selectedFile}
-                setSelectedFile={setSelectedFile}
-              />
+              <Editor currentOpenFile={currentOpenFile} />
             </ResizablePanel>
           ) : (
             currentOpenFile.name.endsWith('.png') || currentOpenFile.name.endsWith('.jpg') || currentOpenFile.name.endsWith('.jpeg')

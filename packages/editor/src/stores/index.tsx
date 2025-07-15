@@ -4,10 +4,7 @@ import { Dispatch, createContext, useContext, useReducer } from "react";
 
 export interface IStore {
   currentDirectory: string;
-  currentOpenFile: {
-    name: string;
-    path: string;
-  };
+  currentOpenFile: IFileTreeItem;
   fileList: IFileTreeItem[];
 }
 

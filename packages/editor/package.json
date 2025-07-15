@@ -31,6 +31,7 @@
     "@tiptap/extension-image": "^3.0.1",
     "@tiptap/extension-link": "^3.0.1",
     "@tiptap/extension-placeholder": "^3.0.1",
+    "@tiptap/extension-table": "^3.0.1",
     "@tiptap/extension-task-item": "^3.0.1",
     "@tiptap/extension-task-list": "^3.0.1",
     "@tiptap/extension-typography": "^3.0.1",
@@ -57,14 +58,17 @@
     "react-dom": "^18",
     "react-resizable-panels": "^2.0.16",
     "react-use": "^17.5.0",
+    "showdown": "^2.1.0",
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.2.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "tiptap-markdown": "^0.8.10"
   },
   "devDependencies": {
     "@types/node": "24.0.13",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/showdown": "^2.0.6",
     "autoprefixer": "^10.0.1",
     "eslint-config-next": "14.1.3",
     "postcss": "^8",
