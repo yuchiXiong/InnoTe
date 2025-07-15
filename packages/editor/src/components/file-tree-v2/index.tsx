@@ -1,12 +1,10 @@
 "use client"
 
-import { ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Plus, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { ScrollArea } from "@radix-ui/react-scroll-area"
-import React, { SetStateAction, useState } from "react"
-import { FileNode } from "../editor/index.v2"
-import { cn } from "@/lib/utils"
+import React, { useState } from "react"
 import { IFileTreeItem } from "../file-tree"
 import FileTreeNode from './node'
 import { getFileList } from "@/actions/files"
@@ -16,11 +14,6 @@ interface IFileTreeProps {
   setFileList: (fileList: IFileTreeItem[]) => void;
   currentOpenFile: IFileTreeItem;
   setCurrentOpenFile: (file: IFileTreeItem) => void;
-
-  files: FileNode[],
-  setFiles: React.Dispatch<SetStateAction<FileNode[]>>
-  selectedFile: FileNode | null,
-  setSelectedFile: React.Dispatch<SetStateAction<FileNode | null>>
 }
 
 const FileTree: React.FC<IFileTreeProps> = ({
@@ -28,71 +21,62 @@ const FileTree: React.FC<IFileTreeProps> = ({
   setFileList,
   currentOpenFile,
   setCurrentOpenFile,
-
-  files,
-  setFiles,
-  selectedFile,
-  setSelectedFile
 }) => {
 
   const [newFileName, setNewFileName] = useState("")
   const [showNewFileInput, setShowNewFileInput] = useState(false)
-  // 选择文件
-  const handleFileSelect = (file: FileNode) => {
-    setSelectedFile(file)
-  }
 
   // 创建新文件
   const createNewFile = () => {
-    if (!newFileName.trim()) return
+    // if (!newFileName.trim()) return
 
-    const newFile: FileNode = {
-      id: Date.now().toString(),
-      name: newFileName + ".md",
-      type: "file",
-      title: "新文档",
-      content: `<h1>${newFileName}</h1><p>开始您的写作...</p><h2>子标题</h2><p>在这里添加内容。您可以：</p><ul><li>创建 <a href="https://example.com" class="text-blue-600 hover:text-blue-800 underline cursor-pointer">链接</a></li><li>插入图片</li><li>嵌入视频</li><li>添加代码块</li></ul><p><strong>粗体文本</strong> 和 <em>斜体文本</em></p><pre><code class="language-javascript">console.log("Hello, World!");</code></pre>`,
-    }
+    // const newFile: FileNode = {
+    //   id: Date.now().toString(),
+    //   name: newFileName + ".md",
+    //   type: "file",
+    //   title: "新文档",
+    //   content: `<h1>${newFileName}</h1><p>开始您的写作...</p><h2>子标题</h2><p>在这里添加内容。您可以：</p><ul><li>创建 <a href="https://example.com" class="text-blue-600 hover:text-blue-800 underline cursor-pointer">链接</a></li><li>插入图片</li><li>嵌入视频</li><li>添加代码块</li></ul><p><strong>粗体文本</strong> 和 <em>斜体文本</em></p><pre><code class="language-javascript">console.log("Hello, World!");</code></pre>`,
+    // }
 
-    const addToFolder = (nodes: FileNode[]): FileNode[] => {
-      return nodes.map((node) => {
-        if (node.type === "folder" && node.isOpen) {
-          return {
-            ...node,
-            children: [...(node.children || []), newFile],
-          }
-        }
-        if (node.children) {
-          return { ...node, children: addToFolder(node.children) }
-        }
-        return node
-      })
-    }
+    // const addToFolder = (nodes: FileNode[]): FileNode[] => {
+    //   return nodes.map((node) => {
+    //     if (node.type === "folder" && node.isOpen) {
+    //       return {
+    //         ...node,
+    //         children: [...(node.children || []), newFile],
+    //       }
+    //     }
+    //     if (node.children) {
+    //       return { ...node, children: addToFolder(node.children) }
+    //     }
+    //     return node
+    //   })
+    // }
 
-    setFiles(addToFolder(files))
-    setNewFileName("")
-    setShowNewFileInput(false)
-    setSelectedFile(newFile)
+    // setFiles(addToFolder(files))
+    // setNewFileName("")
+    // setShowNewFileInput(false)
+    // setSelectedFile(newFile)
   }
 
   // 删除文件
   const deleteFile = (fileId: string) => {
-    const removeFile = (nodes: FileNode[]): FileNode[] => {
-      return nodes.filter((node) => {
-        if (node.id === fileId) {
-          return false
-        }
-        if (node.children) {
-          node.children = removeFile(node.children)
-        }
-        return true
-      })
-    }
+    // const removeFile = (nodes: FileNode[]): FileNode[] => {
+    //   return nodes.filter((node) => {
+    //     if (node.id === fileId) {
+    //       return false
+    //     }
+    //     if (node.children) {
+    //       node.children = removeFile(node.children)
+    //     }
+    //     return true
+    //   })
+    // }
 
-    setFiles(removeFile(files))
-    if (selectedFile?.id === fileId) {
-      setSelectedFile(null)
-    }
+    // setFiles(removeFile(files))
+    // if (selectedFile?.id === fileId) {
+    //   setSelectedFile(null)
+    // }
   }
 
   // 切换文件夹展开状态
@@ -162,12 +146,10 @@ const FileTree: React.FC<IFileTreeProps> = ({
         {fileList.map((file) => (
           <FileTreeNode
             key={file.id}
+            selectedId={currentOpenFile?.id || null}
             file={file}
-            setFileList={setFileList}
-
             onSelect={setCurrentOpenFile}
             onDelete={deleteFile}
-            selectedId={selectedFile?.id || null}
             onToggle={toggleFolder}
           />
         ))}

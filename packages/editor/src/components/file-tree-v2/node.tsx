@@ -1,28 +1,23 @@
 import { cn } from "@/lib/utils"
-import { FileNode } from "../editor/index.v2"
 import { ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Trash2 } from "lucide-react"
 import { Button } from "../ui/button"
 import React from "react"
 import { IFileTreeItem } from "../file-tree"
 
 export interface IFileTreeNodeProps {
+  selectedId: string | null
   file: IFileTreeItem
-  setFileList: (fileList: IFileTreeItem[]) => void
-
   onSelect: (node: IFileTreeItem) => void
   onDelete: (id: string) => void
-  selectedId: string | null
   onToggle: (id: string) => void
 }
 
 // 文件树节点组件
 const FileTreeNode: React.FC<IFileTreeNodeProps> = ({
+  selectedId,
   file,
-  setFileList,
-
   onSelect,
   onDelete,
-  selectedId,
   onToggle,
 }) => {
   const isSelected = selectedId === file.id
@@ -76,12 +71,10 @@ const FileTreeNode: React.FC<IFileTreeNodeProps> = ({
           {file.children.map((file) => (
             <FileTreeNode
               key={file.id}
+              selectedId={selectedId}
               file={file}
-              setFileList={setFileList}
-
               onSelect={onSelect}
               onDelete={onDelete}
-              selectedId={selectedId}
               onToggle={onToggle}
             />
           ))}
