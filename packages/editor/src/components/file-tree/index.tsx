@@ -1,191 +1,171 @@
-import { files } from "@/actions";
-import {
-  Tree,
-  TreeViewElement,
-  File,
-  Folder,
-  CollapseButton,
-} from "@/components/ui/tree-view-api";
-import { CURRENT_OPEN_FILE_PATH, OPENED_DIRECTORIES_KEY } from "@/constants/storage";
-import { MouseEvent, useEffect, useMemo, useState } from "react";
+"use client"
 
-export interface IFileTreeProps {
-  treeData: {
-    id: string;
-    name: string;
-    isSelectable?: boolean;
-    isDirectory: boolean;
-    isOpen: boolean;
-    path: string;
-    children?: IFileTreeProps["treeData"];
-  }[];
-  afterFileOpen: (file: { name: string; path: string }, content: string) => void;
-  reFresh: () => void;
-  expandedItemMap: Record<string, boolean>;
-  setExpandedItemMap: (expandedItemMap: Record<string, boolean>) => void;
+import { Plus } from "lucide-react"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
+import { ScrollArea } from "@radix-ui/react-scroll-area"
+import React, { useState } from "react"
+import FileTreeNode from './node'
+import { getFileList } from "@/actions/files"
+
+export type IFileTreeItem = {
+  id: string;
+  name: string;
+  isSelectable?: boolean;
+  isDirectory: boolean;
+  isOpen: boolean;
+  path: string;
+  children?: IFileTreeItem[];
+};
+
+interface IFileTreeProps {
+  fileList: IFileTreeItem[];
+  setFileList: (fileList: IFileTreeItem[]) => void;
+  currentOpenFile: IFileTreeItem;
+  setCurrentOpenFile: (file: IFileTreeItem) => void;
 }
 
-export type IFileTreeItem = IFileTreeProps["treeData"][number];
 
-const TreeItem = (props: IFileTreeProps) => {
-  const { treeData: _treeData, reFresh, afterFileOpen, expandedItemMap, setExpandedItemMap } = props;
-
-  const treeData = [..._treeData].sort((a, b) => {
-    return Number(b.isDirectory) - Number(a.isDirectory);
-  });
-
-
-  const handleDirectoryClick = async (element: IFileTreeItem) => {
-    if (!element.isDirectory) return;
-
-    if (expandedItemMap[element.id]) {
-      // collapse
-      const newExpandedItemMap = {
-        ...expandedItemMap,
-      }
-      delete newExpandedItemMap[element.id];
-      setExpandedItemMap(newExpandedItemMap);
-      localStorage.setItem(OPENED_DIRECTORIES_KEY, JSON.stringify(newExpandedItemMap));
-
-      return;
-    }
-
-    // expand
-    const newExpandedItemMap = {
-      ...expandedItemMap,
-      [element.id]: true,
-    }
-    setExpandedItemMap(newExpandedItemMap);
-    localStorage.setItem(OPENED_DIRECTORIES_KEY, JSON.stringify(newExpandedItemMap));
-
-    element.children = (await files.getFileList(element.path)) || [];
-
-    props.reFresh();
-  }
-
-  const handleItemClick = async (event: MouseEvent<HTMLLIElement>, element: IFileTreeItem) => {
-    event.stopPropagation();
-    event.preventDefault();
-    if (element.isDirectory) {
-      handleDirectoryClick(element);
-    } else {
-      handleFileClick(element);
-    }
-  }
-
-  const handleFileClick = async (element: IFileTreeItem) => {
-    localStorage.setItem(CURRENT_OPEN_FILE_PATH, JSON.stringify({
-      name: element.name,
-      path: element.path,
-    }));
-
-    if (element.name.endsWith('.md')) {
-      const content = await files.getFileContent(element.path) || '';
-      props.afterFileOpen({
-        name: element.name,
-        path: element.path,
-      }, content);
-    } else {
-      props.afterFileOpen({
-        name: element.name,
-        path: element.path,
-      }, '');
-    }
-
-  }
-
-  return (
-    <ul className="w-full space-y-1">
-      {treeData.map((element) => (
-        <li
-          key={element.id}
-          className="w-full space-y-2"
-          onClick={(e) => handleItemClick(e, element)}
-        >
-          {element.isDirectory ? (
-            <Folder
-              element={element.name}
-              id={element.id}
-              isSelectable={element.isSelectable}
-              className="px-px pr-1"
-            >
-              <TreeItem
-                key={element.id}
-                aria-label={`folder ${element.name}`}
-                treeData={element.children || []}
-                reFresh={reFresh}
-                afterFileOpen={afterFileOpen}
-                expandedItemMap={expandedItemMap}
-                setExpandedItemMap={setExpandedItemMap}
-              />
-            </Folder>
-          ) : (
-            <File
-              key={element.id}
-              id={element.id}
-              element={element.name}
-              isSelectable={element.isSelectable}
-            >
-              <span>{element?.name}</span>
-            </File>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-};
-
-const FileTree = (props: Omit<IFileTreeProps, 'setExpandedItemMap' | 'expandedItemMap'> & {
-  currentOpenFile: {
-    path: string;
-    name: string;
-  }
+const FileTree: React.FC<IFileTreeProps> = ({
+  fileList,
+  setFileList,
+  currentOpenFile,
+  setCurrentOpenFile,
 }) => {
-  const { treeData, reFresh, afterFileOpen, currentOpenFile } = props;
 
-  const [expandedItemMap, setExpandedItemMap] = useState<Record<string, boolean>>({});
-  const [isReady, setIsReady] = useState(false);
+  const [newFileName, setNewFileName] = useState("")
+  const [showNewFileInput, setShowNewFileInput] = useState(false)
 
-  const sortedTreeData = [...treeData].sort((a, b) => {
-    return Number(b.isDirectory) - Number(a.isDirectory);
-  });
+  // 创建新文件
+  const createNewFile = () => {
+    // if (!newFileName.trim()) return
 
+    // const newFile: FileNode = {
+    //   id: Date.now().toString(),
+    //   name: newFileName + ".md",
+    //   type: "file",
+    //   title: "新文档",
+    //   content: `<h1>${newFileName}</h1><p>开始您的写作...</p><h2>子标题</h2><p>在这里添加内容。您可以：</p><ul><li>创建 <a href="https://example.com" class="text-blue-600 hover:text-blue-800 underline cursor-pointer">链接</a></li><li>插入图片</li><li>嵌入视频</li><li>添加代码块</li></ul><p><strong>粗体文本</strong> 和 <em>斜体文本</em></p><pre><code class="language-javascript">console.log("Hello, World!");</code></pre>`,
+    // }
 
-  useEffect(() => {
-    const openedDirectories = localStorage.getItem(OPENED_DIRECTORIES_KEY);
-    console.log('openedDirectories', openedDirectories);
-    if (openedDirectories) {
-      setExpandedItemMap(JSON.parse(openedDirectories));
+    // const addToFolder = (nodes: FileNode[]): FileNode[] => {
+    //   return nodes.map((node) => {
+    //     if (node.type === "folder" && node.isOpen) {
+    //       return {
+    //         ...node,
+    //         children: [...(node.children || []), newFile],
+    //       }
+    //     }
+    //     if (node.children) {
+    //       return { ...node, children: addToFolder(node.children) }
+    //     }
+    //     return node
+    //   })
+    // }
+
+    // setFiles(addToFolder(files))
+    // setNewFileName("")
+    // setShowNewFileInput(false)
+    // setSelectedFile(newFile)
+  }
+
+  // 删除文件
+  const deleteFile = (fileId: string) => {
+    // const removeFile = (nodes: FileNode[]): FileNode[] => {
+    //   return nodes.filter((node) => {
+    //     if (node.id === fileId) {
+    //       return false
+    //     }
+    //     if (node.children) {
+    //       node.children = removeFile(node.children)
+    //     }
+    //     return true
+    //   })
+    // }
+
+    // setFiles(removeFile(files))
+    // if (selectedFile?.id === fileId) {
+    //   setSelectedFile(null)
+    // }
+  }
+
+  // 切换文件夹展开状态
+  const toggleFolder = async (folderId: string) => {
+    // console.log('before toggleFolder', fileList, folderId)
+    const toggleNode = async (nodes: IFileTreeItem[]): Promise<IFileTreeItem[]> => {
+      return await Promise.all(nodes.map(async (node) => {
+        // console.log('toggleFolder', node.id, folderId)
+
+        if (node.id === folderId) {
+          // console.log('toggleFolder 找到了', node.id, folderId)
+          // 将一个文件夹展开时，需要拉取这个目录下的文件列表
+          const children = await getFileList(folderId);
+          return { ...node, isOpen: !node.isOpen, children }
+        }
+
+        if (node.children) {
+          const children = await toggleNode(node.children);
+          return { ...node, children }
+        }
+        return node
+      }))
     }
-    setIsReady(true);
-  }, []);
 
-  const expendedItems: string[] = useMemo(() => {
-    return Object.keys(expandedItemMap).filter((key) => expandedItemMap[key]);
-  }, [expandedItemMap]);
+    const newFileList = await toggleNode(fileList);
+
+    setFileList(newFileList)
+    // console.log('after toggleFolder', toggleNode(fileList), folderId)
+  }
 
   return (
-    isReady && (
-      <Tree
-        className="w-full p-2"
-        indicator={true}
-        initialExpendedItems={expendedItems}
-        initialSelectedId={currentOpenFile.path}
-      >
-        {sortedTreeData.map((element, _) => (
-          <TreeItem
-            key={element.id}
-            treeData={[element]}
-            afterFileOpen={afterFileOpen}
-            reFresh={props.reFresh}
-            expandedItemMap={expandedItemMap}
-            setExpandedItemMap={setExpandedItemMap}
+    <div className="w-full h-full border bg-white border-r border-gray-200 flex flex-col">
+      <div className="p-4 border-b border-gray-200">
+        {/* 顶部工具栏 */}
+        <div className="flex items-center justify-between my-[1.5px]">
+          <h2 className="font-semibold text-gray-900">文件管理</h2>
+          <Button variant="ghost" size="sm" onClick={() => setShowNewFileInput(true)}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* 创建文件的录入框 */}
+        {showNewFileInput && (
+          <div className="flex gap-2">
+            <Input
+              value={newFileName}
+              onChange={(e) => setNewFileName(e.target.value)}
+              placeholder="文件名"
+              className="text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  createNewFile()
+                } else if (e.key === "Escape") {
+                  setShowNewFileInput(false)
+                  setNewFileName("")
+                }
+              }}
+            />
+            <Button size="sm" onClick={createNewFile}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <ScrollArea className="flex-1 p-2 overflow-y-auto">
+        {fileList.map((file) => (
+          <FileTreeNode
+            key={file.id}
+            selectedId={currentOpenFile?.id || null}
+            file={file}
+            onSelect={setCurrentOpenFile}
+            onDelete={deleteFile}
+            onToggle={toggleFolder}
           />
         ))}
-        <CollapseButton elements={sortedTreeData} expandAll={false} />
-      </Tree>
-    )
-  );
-};
+      </ScrollArea>
+    </div>
+  )
+}
 
 export default FileTree;

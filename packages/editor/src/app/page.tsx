@@ -2,12 +2,12 @@
 "use client"
 
 import Header from "@/components/header";
-import Editor from "@/components/editor/index.v2";
+import Editor from "@/components/editor";
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { CURRENT_OPEN_DIRECTORY_KEY, CURRENT_OPEN_FILE_PATH, FILE_LIST_BEFORE_CLOSE_KEY, OPENED_DIRECTORIES_KEY } from "@/constants/storage";
 import { IFileTreeItem } from "@/components/file-tree";
 import { useSelector, useDispatch, InnoTeProvider } from "@/stores";
-import FileTree from "@/components/file-tree-v2";
+import FileTree from "@/components/file-tree";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { getFileList } from "@/actions/files";

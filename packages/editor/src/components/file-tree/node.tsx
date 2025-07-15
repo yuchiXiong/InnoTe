@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 import { ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Trash2 } from "lucide-react"
 import { Button } from "../ui/button"
 import React from "react"
-import { IFileTreeItem } from "../file-tree"
+import { IFileTreeItem } from "."
 
 export interface IFileTreeNodeProps {
   selectedId: string | null

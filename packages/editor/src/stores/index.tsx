@@ -39,8 +39,11 @@ const reducer = (state: IStore, action: any): IStore => {
 const initialState: IStore = {
   currentDirectory: '',
   currentOpenFile: {
+    id: '',
     name: '',
     path: '',
+    isDirectory: false,
+    isOpen: false
   },
   fileList: [],
 }
