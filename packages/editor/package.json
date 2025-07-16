@@ -38,6 +38,7 @@
     "@tiptap/starter-kit": "^3.0.1",
     "@types/md5": "^2.3.5",
     "@vercel/kv": "^1.0.1",
+    "ahooks": "^3.9.0",
     "axios": "^1.6.8",
     "cheerio": "^1.0.0-rc.12",
     "class-variance-authority": "^0.7.0",

@@ -32,6 +32,10 @@ export interface IElectronAPI {
     saveFileContent: (path: string, content: string) => Promise<void>;
     saveImageFromClipboard: (path: string) => Promise<string>;
     pathJoin: (paths: string[]) => string;
+    renameFile: (name: string, newName: string) => Promise<{
+      result: boolean;
+      reason?: string;
+    }>
   };
 }
 

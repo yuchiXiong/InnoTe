@@ -40,6 +40,13 @@ export const getFileContent = (path: string): Promise<string> => {
   return window.electronAPI.files.getFileContent(path);
 };
 
+export const renameFile = (path: string, newPath: string): Promise<{
+  result: boolean;
+  reason?: string;
+}> => {
+  return window.electronAPI.files.renameFile(path, newPath);
+};
+
 export const saveFileContent = (
   path: string,
   content: string

@@ -81,6 +81,25 @@ const saveFileContent = async (
   fs.writeFileSync(path, content, "utf-8");
 };
 
+const handleRenameFile = async (e, path: string, newPath: string) => {
+  const targetIsExist = fs.existsSync(path);
+  if (!targetIsExist) return {
+    result: false,
+    reason: `target ${path} not exist!`
+  };
+
+  const newNameFileExist = fs.existsSync(newPath);
+  if (newNameFileExist) return {
+    result: false,
+    reason: `new name ${newPath} already exist!`
+  }
+
+  fs.renameSync(path, newPath);
+  return {
+    result: true
+  }
+}
+
 const createWindow = () => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
@@ -165,6 +184,7 @@ app.whenReady().then(() => {
     // 返回图片的相对路径
     return path.relative(imagePath, fullImagePath);
   });
+  ipcMain.handle('renameFile', handleRenameFile)
   // ipcMain.handle("getPathForFile", (e, path: string) => {
   //   webUtils.getPathForFile(path);
   // });

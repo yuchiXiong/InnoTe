@@ -6,11 +6,14 @@ export interface IStore {
   currentDirectory: string;
   currentOpenFile: IFileTreeItem;
   fileList: IFileTreeItem[];
+  _fileMap: Record<string, IFileTreeItem>
 }
 
 export enum ActionType {
   SET_CURRENT_DIRECTORY = 'SET_CURRENT_DIRECTORY',
+  /** 更新当前打开的文件 */
   SET_CURRENT_OPEN_FILE = 'SET_CURRENT_OPEN_FILE',
+  /** 更新 fileList */
   SET_FILE_LIST = 'SET_FILE_LIST',
 }
 
@@ -27,9 +30,15 @@ const reducer = (state: IStore, action: any): IStore => {
         currentOpenFile: action.currentOpenFile,
       }
     case ActionType.SET_FILE_LIST:
+      const fileList = action.fileList as IFileTreeItem[];
+      console.log('fileList updated', fileList)
       return {
         ...state,
-        fileList: action.fileList,
+        fileList,
+        _fileMap: fileList.reduce((obj, cur) => {
+          obj[cur.id] = cur;
+          return obj;
+        }, {} as Record<string, IFileTreeItem>)
       }
     default:
       return { ...state };
@@ -46,6 +55,7 @@ const initialState: IStore = {
     isOpen: false
   },
   fileList: [],
+  _fileMap: {}
 }
 
 export const InnoTeContext = createContext({

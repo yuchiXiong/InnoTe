@@ -31,11 +31,13 @@ import { TableKit } from '@tiptap/extension-table'
 import { common, createLowlight } from "lowlight"
 import { Node, RawCommands, mergeAttributes } from "@tiptap/core"
 import { ScrollArea } from "../ui/scroll-area";
-import { getFileContent, saveFileContent } from "@/actions/files";
+import { getFileContent, pathJoin, renameFile, saveFileContent } from "@/actions/files";
 import { Converter } from 'showdown';
 import { IFileTreeItem } from "../file-tree";
 import { Markdown } from 'tiptap-markdown'
 import { useDebounce } from "react-use";
+import { useDebounceFn } from 'ahooks'
+import { useDispatch, useSelector } from "@/stores";
 
 export interface IEditorProps {
   currentOpenFile: IFileTreeItem,
@@ -443,54 +445,78 @@ const Editor: React.FC<IEditorProps> = ({
   currentOpenFile
 }) => {
 
+  const [title, setTitle] = useState('')
   const [content, setContent] = useState('');
-  const [debounceFnFlag, setDebounceFnFlag] = useState<number>(0);
 
-  useDebounce(() => {
-    if (debounceFnFlag === 0) return;
+  const fileList = useSelector(state => state.fileList)
+  const fileMap = useSelector(state => state._fileMap)
+  const dispatch = useDispatch();
 
-    saveFileContent(currentOpenFile.path, content);
-  }, 200, [debounceFnFlag, content]);
+  const { run: saveContentToFile } = useDebounceFn(
+    (path, content) => {
+      saveFileContent(path, content);
+    },
+    {
+      wait: 500,
+    },
+  );
 
-  const debounceSaveFileContent = useCallback((content: string) => {
-    setDebounceFnFlag(debounceFnFlag => debounceFnFlag + 1);
-    setContent(content);
-  }, []);
-
-  // 更新文件内容
-  const updateFileContent = (content: string) => {
-    if (!currentOpenFile) return
-
-    debounceSaveFileContent(content);
-  }
-
-  // 更新文件标题
-  // const updateFileTitle = (title: string) => {
-  //   if (!selectedFile) return
-
-  //   const updateFile = (nodes: FileNode[]): FileNode[] => {
-  //     return nodes.map((node) => {
-  //       if (node.id === selectedFile.id) {
-  //         return { ...node, title }
-  //       }
-  //       if (node.children) {
-  //         return { ...node, children: updateFile(node.children) }
-  //       }
-  //       return node
-  //     })
-  //   }
-
-  //   setFiles(updateFile(files))
-  //   setSelectedFile({ ...selectedFile, title })
-  // }
+  const { run: renameToFile } = useDebounceFn(
+    (path, newPath) => {
+      renameFile(path, newPath).then(res => {
+        console.log(res);
+        if (res.result) {
+          const target = fileMap[path];
+          target.id = newPath;
+          target.path = newPath;
+          target.name = title + '.md';
+          (target?.children || [])
+            .map((child) => {
+              const childFullPath = pathJoin([newPath, child.name]);
+              return {
+                ...child,
+                id: childFullPath,
+                path: childFullPath,
+              };
+            })
+            .sort((a, b) => Number(b.isDirectory) - Number(a.isDirectory))
+          dispatch({
+            type: 'SET_FILE_LIST',
+            fileList 
+          })
+        } else {
+          console.error('rename failed! ' + res.reason)
+        }
+      });
+    },
+    {
+      wait: 500,
+    },
+  );
 
   useEffect(() => {
+    console.log('[debug] fetchFile Content')
     if (currentOpenFile.path) {
       getFileContent(currentOpenFile.path).then(res => {
         setContent(res);
+        setTitle(currentOpenFile.name.replace('.md', ''))
+        console.log(res)
       })
     }
   }, [currentOpenFile]);
+
+  const updateFileContent = (content: string) => {
+    setContent(content);
+    saveContentToFile(currentOpenFile.path, content);
+  }
+
+  const updateFileTitle = (title: string) => {
+    console.log('updateFileTitle', title)
+    setTitle(title)
+    const newPath = currentOpenFile.path?.replace(currentOpenFile.name, title + '.md')
+    console.log(newPath)
+    renameToFile(currentOpenFile.path, newPath)
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -500,8 +526,8 @@ const Editor: React.FC<IEditorProps> = ({
           <div className="bg-white border-b border-gray-200">
             <div className="flex items-center justify-between">
               <Input
-                value={currentOpenFile.name.replace('.md', '') || ""}
-                // onChange={(e) => updateFileTitle(e.target.value)}
+                value={title}
+                onChange={(e) => updateFileTitle(e.target.value)}
                 className="text-2xl m-4 font-semibold border-none shadow-none px-0 focus-visible:ring-0 bg-transparent"
                 placeholder="title"
               />

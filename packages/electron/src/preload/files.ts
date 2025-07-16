@@ -20,6 +20,10 @@ export const saveFileContent = (path: string, content: string) => {
   return ipcRenderer.invoke("saveFileContent", path, content);
 };
 
+export const renameFile = (path: string, newPath: string) => {
+  return ipcRenderer.invoke('renameFile', path, newPath)
+}
+
 export const pathJoin = (paths: string[]) => {
   const fullPath = path.join(...paths);
 
