@@ -115,6 +115,12 @@ const IframeExtension = Node.create({
       frameborder: {
         default: "0",
       },
+      allow: {
+        default: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      },
+      referrerpolicy: {
+        default: "strict-origin-when-cross-origin"
+      }
     }
   },
 
@@ -393,6 +399,8 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
           width: "100%",
           allowfullscreen: true,
           frameborder: "0",
+          allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+          referrerpolicy: "strict-origin-when-cross-origin"
         })
         .run()
     }
