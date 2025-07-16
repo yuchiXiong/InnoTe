@@ -35,9 +35,10 @@ import { getFileContent, pathJoin, renameFile, saveFileContent } from "@/actions
 import { Converter } from 'showdown';
 import { IFileTreeItem } from "../file-tree";
 import { Markdown } from 'tiptap-markdown'
-import { useDebounce } from "react-use";
 import { useDebounceFn } from 'ahooks'
 import { useDispatch, useSelector } from "@/stores";
+import { Extension } from "@tiptap/core"
+import { ModalDialog, showInputDialog } from "../ui/modal-dialog"
 
 export interface IEditorProps {
   currentOpenFile: IFileTreeItem,
@@ -188,6 +189,55 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
   // 在 TiptapEditor 函数开始处添加状态
   const [showSource, setShowSource] = useState(false)
 
+  // 检测文本是否为 Markdown 格式
+  const detectMarkdown = (text: string): boolean => {
+    // 检测常见的 Markdown 语法特征
+    const markdownPatterns = [
+      /^#{1,6}\s+.+$/m, // 标题
+      /^\*\*.*\*\*$/m, // 粗体
+      /^\*.*\*$/m, // 斜体
+      /^\[.*\]$$.*$$$/m, // 链接
+      /^!\[.*\]$$.*$$$/m, // 图片
+      /^```[\s\S]*```$/m, // 代码块
+      /^`.*`$/m, // 行内代码
+      /^>\s+.+$/m, // 引用
+      /^[-*+]\s+.+$/m, // 无序列表
+      /^\d+\.\s+.+$/m, // 有序列表
+      /^\|.*\|.*\|$/m, // 表格
+    ]
+
+    // 如果匹配到多个 Markdown 特征，认为是 Markdown
+    const matches = markdownPatterns.filter((pattern) => pattern.test(text))
+    return matches.length >= 2 || (text.includes("\n") && matches.length >= 1)
+  }
+
+  // 手动粘贴 Markdown
+  const pasteMarkdown = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text && editor) {
+        const html = converter.makeHtml(text)
+        editor.commands.insertContent(html)
+      }
+    } catch (error) {
+      console.error("无法读取剪贴板内容:", error)
+    }
+  }
+
+  // 创建快捷键扩展
+  const ShortcutsExtension = Extension.create({
+    name: "shortcuts",
+
+    addKeyboardShortcuts() {
+      return {
+        "Mod-Shift-v": () => {
+          pasteMarkdown()
+          return true
+        },
+      }
+    },
+  })
+
   // 切换原文显示
   const toggleSource = () => {
     setShowSource(!showSource)
@@ -226,7 +276,8 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
         },
       }),
       IframeExtension,
-      Markdown
+      Markdown,
+      ShortcutsExtension,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -235,6 +286,35 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
     editorProps: {
       attributes: {
         class: "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[500px] p-8",
+      },
+      handlePaste: (view, event, slice) => {
+        // 获取剪贴板数据
+        const clipboardData = event.clipboardData
+        if (!clipboardData) return false
+
+        // 获取纯文本内容
+        const text = clipboardData.getData("text/plain")
+        if (!text) return false
+
+        // 检测是否为 Markdown 内容
+        const isMarkdown = detectMarkdown(text)
+
+        if (isMarkdown) {
+          // 阻止默认粘贴行为
+          event.preventDefault()
+
+          // 转换 Markdown 为 HTML 并插入
+          const html = converter.makeHtml(text)
+          const parser = new DOMParser()
+          // const doc = parser.parseFromString(html, "text/html")
+
+          // 插入转换后的内容
+          editor?.commands.insertContent(html)
+          return true
+        }
+
+        // 如果不是 Markdown，使用默认处理
+        return false
       },
     },
   })
@@ -248,11 +328,20 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
   }, [content, editor])
 
   // 添加链接
-  const addLink = () => {
-    const url = window.prompt("请输入链接URL:")
+  const addLink = async () => {
+    const url = await showInputDialog({
+      title: "添加链接",
+      description: "请输入链接地址",
+      placeholder: "https://example.com",
+    })
     if (url && editor) {
       if (editor.state.selection.empty) {
-        const text = window.prompt("请输入链接文本:", url)
+        const text = await showInputDialog({
+          title: "链接文本",
+          description: "请输入链接显示的文本",
+          placeholder: "链接文本",
+          defaultValue: url,
+        })
         if (text) {
           editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run()
         }
@@ -270,18 +359,31 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
   }
 
   // 添加图片
-  const addImage = () => {
-    const url = window.prompt("请输入图片URL:")
+  const addImage = async () => {
+    const url = await showInputDialog({
+      title: "插入图片",
+      description: "请输入图片地址",
+      placeholder: "https://example.com/image.jpg",
+    })
     if (url && editor) {
       editor.chain().focus().setImage({ src: url }).run()
     }
   }
 
   // 添加视频/iframe
-  const addVideo = () => {
-    const src = window.prompt("请输入视频嵌入代码的src地址:")
+  const addVideo = async () => {
+    const src = await showInputDialog({
+      title: "嵌入视频",
+      description: "请输入视频嵌入地址",
+      placeholder: "https://player.bilibili.com/player.html?...",
+    })
     if (src && editor) {
-      const height = window.prompt("请输入视频高度 (默认400px):", "400")
+      const height = await showInputDialog({
+        title: "视频高度",
+        description: "请输入视频高度（像素）",
+        placeholder: "400",
+        defaultValue: "400",
+      });
       editor
         .chain()
         .focus()
@@ -302,6 +404,8 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
 
   return (
     <div className="flex flex-col flex-1">
+      {/* 全局对话框 */}
+      <ModalDialog />
       {/* 工具栏 */}
       <div className="border-b border-gray-200 p-2 bg-gray-50">
         <div className="flex items-center gap-1 flex-wrap">
@@ -482,7 +586,7 @@ const Editor: React.FC<IEditorProps> = ({
             .sort((a, b) => Number(b.isDirectory) - Number(a.isDirectory))
           dispatch({
             type: 'SET_FILE_LIST',
-            fileList 
+            fileList
           })
         } else {
           console.error('rename failed! ' + res.reason)

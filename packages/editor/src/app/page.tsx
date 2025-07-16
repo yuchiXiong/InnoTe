@@ -11,6 +11,8 @@ import FileTree from "@/components/file-tree";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { getFileList } from "@/actions/files";
+import EmptyView from "@/components/editor/empty-view";
+import UnsupportedView from "@/components/editor/unsupported-view";
 
 export interface FileNode {
   id: string
@@ -148,24 +150,13 @@ export default function Home() {
                   </ResizablePanel>
                 )
                 : (
-                  <ResizablePanel defaultSize={defaultLayout[1]}>
-                    <section className="text-gray-600 body-font">
-                      <div className="container mx-auto flex px-5 py-24 items-center justify-center flex-col">
-                        <img className="mb-10 object-cover object-center rounded" alt="Logo" src="https://dummyimage.com/368x307" />
-                        <div className="text-center lg:w-2/3 w-full">
-                          <h1 className="title-font sm:text-4xl text-3xl mb-4 font-medium text-gray-900">InnoTe Editor</h1>
-                          {
-                            currentOpenFile.name === ''
-                              ? (<p className="my-4 leading-relaxed">点击「文件 - 打开目录」立即开始编写你的 Markdown 文件</p>)
-                              : (<p className="my-4 leading-relaxed">暂不支持该文件类型哦~</p>)
-                          }
-                          {/* <div className="flex justify-center">
-                  <button className="inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg">Button</button>
-                  <button className="ml-4 inline-flex text-gray-700 bg-gray-100 border-0 py-2 px-6 focus:outline-none hover:bg-gray-200 rounded text-lg">Button</button>
-                </div> */}
-                        </div>
-                      </div>
-                    </section>
+                  <ResizablePanel defaultSize={defaultLayout[1]} className="flex flex-col">
+                    {currentOpenFile.name !== '' ? (
+                      <UnsupportedView 
+                        src={currentOpenFile.path}
+                        title={currentOpenFile.name}
+                      />
+                    ) : <EmptyView onCreateFile={console.log} />}
                   </ResizablePanel>
                 )
             )}
