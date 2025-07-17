@@ -73,6 +73,22 @@ const getFileContent = async (path: string): Promise<string> => {
   return content;
 };
 
+const handleCreateFile = async (e, path: string) => {
+  console.log("[DEBUG] handleCreateFile", path);
+
+  const alreadyExist = fs.existsSync(path);
+  if (alreadyExist) return {
+    result: false,
+    reason: `file ${path} already exist!`
+  }
+  // TODO 不能随便创建，得做一定的权限校验
+  fs.writeFileSync(path, "", "utf-8");
+
+  return {
+    result: true
+  }
+}
+
 const saveFileContent = async (
   path: string,
   content: string
@@ -156,6 +172,7 @@ app.whenReady().then(() => {
   ipcMain.handle("dialog:openDirectory", handleOpenDirectory);
   ipcMain.handle("getFileList", (e, path: string) => getFileList(path));
   ipcMain.handle("getFileContent", (e, path: string) => getFileContent(path));
+  ipcMain.handle('createFile', handleCreateFile);
   ipcMain.handle("saveFileContent", (e, path: string, content: string) =>
     saveFileContent(path, content)
   );

@@ -6,7 +6,9 @@ import { Input } from "../ui/input"
 import { ScrollArea } from "@radix-ui/react-scroll-area"
 import React, { useState } from "react"
 import FileTreeNode from './node'
-import { getFileList } from "@/actions/files"
+import { createFile, getFileList, pathJoin } from "@/actions/files"
+import { v4 as uuidv4 } from 'uuid';
+import { useSelector } from "@/stores"
 
 export type IFileTreeItem = {
   id: string;
@@ -16,6 +18,7 @@ export type IFileTreeItem = {
   isOpen: boolean;
   path: string;
   children?: IFileTreeItem[];
+  showNewFileInput?: boolean // 控制是否显示新文件输入框
 };
 
 interface IFileTreeProps {
@@ -33,40 +36,83 @@ const FileTree: React.FC<IFileTreeProps> = ({
   setCurrentOpenFile,
 }) => {
 
+  const _fileMap = useSelector(state => state._fileMap)
   const [newFileName, setNewFileName] = useState("")
-  const [showNewFileInput, setShowNewFileInput] = useState(false)
 
   // 创建新文件
-  const createNewFile = () => {
-    // if (!newFileName.trim()) return
+  const handleFileCreate = (fileId: string) => {
+    console.log('handleFileCreate', newFileName, fileId)
+    if (!newFileName.trim()) return
 
-    // const newFile: FileNode = {
-    //   id: Date.now().toString(),
-    //   name: newFileName + ".md",
-    //   type: "file",
-    //   title: "新文档",
-    //   content: `<h1>${newFileName}</h1><p>开始您的写作...</p><h2>子标题</h2><p>在这里添加内容。您可以：</p><ul><li>创建 <a href="https://example.com" class="text-blue-600 hover:text-blue-800 underline cursor-pointer">链接</a></li><li>插入图片</li><li>嵌入视频</li><li>添加代码块</li></ul><p><strong>粗体文本</strong> 和 <em>斜体文本</em></p><pre><code class="language-javascript">console.log("Hello, World!");</code></pre>`,
-    // }
+    const fileName = newFileName + '.md'
+    const fullPath = currentOpenFile.path.replace(currentOpenFile.name, fileName)
 
-    // const addToFolder = (nodes: FileNode[]): FileNode[] => {
-    //   return nodes.map((node) => {
-    //     if (node.type === "folder" && node.isOpen) {
-    //       return {
-    //         ...node,
-    //         children: [...(node.children || []), newFile],
-    //       }
-    //     }
-    //     if (node.children) {
-    //       return { ...node, children: addToFolder(node.children) }
-    //     }
-    //     return node
-    //   })
-    // }
+    createFile(fullPath).then(res => {
+      console.log(res)
+      if (res.result) {
+        console.log('[DEBUG]', fileId, _fileMap, _fileMap[fileId])
+        // 更新文件树
+        const target = _fileMap[fileId];
+        target.id = fullPath;
+        target.path = fullPath;
+        target.showNewFileInput = false;
+        target.name = fileName;
+        setFileList(fileList)
+        setNewFileName("")
+        setCurrentOpenFile(target)
+      } else {
+        handleFileCreateCancel(fileId);
+      }
+    })
+  }
 
-    // setFiles(addToFolder(files))
-    // setNewFileName("")
-    // setShowNewFileInput(false)
-    // setSelectedFile(newFile)
+  // 显示新文件输入框
+  const showNewFileInput = () => {
+    const id = uuidv4();
+
+    const newFile: IFileTreeItem = {
+      id: id,
+      name: newFileName,
+      isSelectable: true,
+      isDirectory: false,
+      isOpen: false,
+      path: id,
+      showNewFileInput: true
+    }
+
+    const addToFolder = (nodes: IFileTreeItem[]): IFileTreeItem[] => {
+      return nodes.map((node) => {
+        if (node.isDirectory && node.isOpen) {
+          return {
+            ...node,
+            children: [...(node.children || []), newFile],
+          }
+        }
+        if (node.children) {
+          return { ...node, children: addToFolder(node.children) }
+        }
+        return node
+      })
+    }
+
+    setFileList(addToFolder(fileList))
+    setNewFileName('')
+    // setCurrentOpenFile(newFile)
+  }
+
+  // 取消新文件输入
+  const handleFileCreateCancel = (fileId: string) => {
+    const updateFolder = (nodes: IFileTreeItem[]): IFileTreeItem[] => {
+      return nodes.filter(i => i.id !== fileId).map((node) => {
+        if (node.children) {
+          return { ...node, children: updateFolder(node.children) }
+        }
+        return node
+      })
+    }
+
+    setFileList(updateFolder(fileList))
+    setNewFileName("")
   }
 
   // 删除文件
@@ -123,33 +169,10 @@ const FileTree: React.FC<IFileTreeProps> = ({
         {/* 顶部工具栏 */}
         <div className="flex items-center justify-between my-[1.5px]">
           <h2 className="font-semibold text-gray-900">文件管理</h2>
-          <Button variant="ghost" size="sm" onClick={() => setShowNewFileInput(true)}>
+          <Button variant="ghost" size="sm" onClick={() => showNewFileInput()}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-
-        {/* 创建文件的录入框 */}
-        {showNewFileInput && (
-          <div className="flex gap-2">
-            <Input
-              value={newFileName}
-              onChange={(e) => setNewFileName(e.target.value)}
-              placeholder="文件名"
-              className="text-sm"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  createNewFile()
-                } else if (e.key === "Escape") {
-                  setShowNewFileInput(false)
-                  setNewFileName("")
-                }
-              }}
-            />
-            <Button size="sm" onClick={createNewFile}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
 
       <ScrollArea className="flex-1 p-2 overflow-y-auto">
@@ -161,6 +184,11 @@ const FileTree: React.FC<IFileTreeProps> = ({
             onSelect={setCurrentOpenFile}
             onDelete={deleteFile}
             onToggle={toggleFolder}
+            showNewFileInput={showNewFileInput}
+            handleFileCreate={handleFileCreate}
+            handleFileCreateCancel={handleFileCreateCancel}
+            newFileName={newFileName}
+            onNewFileNameChange={setNewFileName}
           />
         ))}
       </ScrollArea>

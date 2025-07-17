@@ -36,6 +36,10 @@ export interface IElectronAPI {
       result: boolean;
       reason?: string;
     }>
+    createFile: (name: string) => Promise<{
+      result: boolean;
+      reason?: string;
+    }>
   };
 }
 

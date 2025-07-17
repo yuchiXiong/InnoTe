@@ -14,17 +14,6 @@ import { getFileList } from "@/actions/files";
 import EmptyView from "@/components/editor/empty-view";
 import UnsupportedView from "@/components/editor/unsupported-view";
 
-export interface FileNode {
-  id: string
-  name: string
-  type: "file" | "folder"
-  content?: string
-  title?: string
-  children?: FileNode[]
-  isOpen?: boolean
-}
-
-
 export default function Home() {
 
   const dispatch = useDispatch();
@@ -46,6 +35,7 @@ export default function Home() {
   }
 
   const setCurrentOpenFile = (file: IFileTreeItem) => {
+    console.log('useInnoTeStore SET_CURRENT_OPEN_FILE', file)
     dispatch({ type: 'SET_CURRENT_OPEN_FILE', currentOpenFile: file });
   }
 

@@ -17,6 +17,16 @@ export enum ActionType {
   SET_FILE_LIST = 'SET_FILE_LIST',
 }
 
+const collectionFileItem = (fileList: IFileTreeItem[]): Record<string, IFileTreeItem> => {
+  return fileList.reduce((obj, cur) => {
+    obj[cur.id] = cur;
+    if (cur.children) {
+      Object.assign(obj, collectionFileItem(cur.children))
+    }
+    return obj;
+  }, {} as Record<string, IFileTreeItem>)
+}
+
 const reducer = (state: IStore, action: any): IStore => {
   switch (action.type) {
     case ActionType.SET_CURRENT_DIRECTORY:
@@ -31,14 +41,12 @@ const reducer = (state: IStore, action: any): IStore => {
       }
     case ActionType.SET_FILE_LIST:
       const fileList = action.fileList as IFileTreeItem[];
-      console.log('fileList updated', fileList)
+      const _fileMap = collectionFileItem(action.fileList)
+
       return {
         ...state,
         fileList,
-        _fileMap: fileList.reduce((obj, cur) => {
-          obj[cur.id] = cur;
-          return obj;
-        }, {} as Record<string, IFileTreeItem>)
+        _fileMap,
       }
     default:
       return { ...state };

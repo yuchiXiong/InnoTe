@@ -16,6 +16,10 @@ export const getFileContent = (path: string) => {
   return ipcRenderer.invoke("getFileContent", path);
 };
 
+export const createFile = (path: string) => {
+  return ipcRenderer.invoke('createFile', path);
+}
+
 export const saveFileContent = (path: string, content: string) => {
   return ipcRenderer.invoke("saveFileContent", path, content);
 };
