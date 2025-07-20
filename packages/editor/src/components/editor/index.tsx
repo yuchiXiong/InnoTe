@@ -29,7 +29,7 @@ import LinkExtension from "@tiptap/extension-link"
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
 import { TableKit } from '@tiptap/extension-table'
 import { common, createLowlight } from "lowlight"
-import { Node, RawCommands, mergeAttributes } from "@tiptap/core"
+import { Node, RawCommands, mergeAttributes, Extension, Storage, ChainedCommands } from "@tiptap/core"
 import { ScrollArea } from "../ui/scroll-area";
 import { getFileContent, pathJoin, renameFile, saveFileContent } from "@/actions/files";
 import { Converter } from 'showdown';
@@ -37,9 +37,7 @@ import { IFileTreeItem } from "../file-tree";
 import { Markdown } from 'tiptap-markdown'
 import { useDebounceFn } from 'ahooks'
 import { useDispatch, useSelector } from "@/stores";
-import { Extension } from "@tiptap/core"
 import { ModalDialog, showInputDialog } from "../ui/modal-dialog"
-
 export interface IEditorProps {
   currentOpenFile: IFileTreeItem,
 }
@@ -287,7 +285,7 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.storage['markdown'].getMarkdown())
+      onChange((editor.storage as Storage & { markdown: { getMarkdown: () => string } })['markdown'].getMarkdown())
     },
     editorProps: {
       attributes: {
@@ -327,7 +325,7 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
 
   // 当外部内容变化时更新编辑器
   useEffect(() => {
-    if (editor && content !== editor.storage['markdown'].getMarkdown()) {
+    if (editor && content !== (editor.storage as Storage & { markdown: { getMarkdown: () => string } })['markdown'].getMarkdown()) {
       const html = converter.makeHtml(content)
       editor.commands.setContent(html);
     }
@@ -390,9 +388,9 @@ function TiptapEditor({ content, onChange }: { content: string; onChange: (conte
         placeholder: "400",
         defaultValue: "400",
       });
-      editor
+      (editor
         .chain()
-        .focus()
+        .focus() as ChainedCommands & { setIframe: Function })
         .setIframe({
           src,
           height: height || "400",

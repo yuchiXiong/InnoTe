@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { kv } from "@vercel/kv";
-import * as cheerio from "cheerio";
+// import * as cheerio from "cheerio";
 import md5 from "md5";
 
 export async function GET(request: NextRequest) {
@@ -15,16 +15,21 @@ export async function GET(request: NextRequest) {
   const cache = await kv.get<string>(key);
 
   if (cache) {
-    return Response.json({
-      status: "ok",
-      result: cache,
-    });
+    return new Response(
+      JSON.stringify({
+        status: "ok",
+        result: cache,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
-  const response = await fetch(query);
+  // const response = await fetch(query);
 
-  const html = await response.text();
-  const $ = cheerio.load(html);
+  // const html = await response.text();
+  // const $ = cheerio.load(html);
 
   const obj: {
     title: string;
@@ -40,35 +45,40 @@ export async function GET(request: NextRequest) {
     image: "",
   };
 
-  $("meta")
-    .toArray()
-    .forEach((item: cheerio.Element) => {
-      switch ($(item).attr("property") || $(item).attr("name")) {
-        case "og:description":
-        case "description":
-          obj.description =
-            obj.description || ($(item).attr("content") as string);
-          break;
-        case "og:site_name":
-          obj.siteName = $(item).attr("content") as string;
-          break;
-        case "og:title":
-          obj.title = $(item).attr("content") as string;
-          break;
-        case "og:url":
-          obj.url = $(item).attr("content") as string;
-          break;
-        case "og:image":
-          obj.image = $(item).attr("content") as string;
-          break;
-      }
-    });
+  // $("meta")
+  //   .toArray()
+  //   .forEach((item: cheerio.Element) => {
+  //     switch ($(item).attr("property") || $(item).attr("name")) {
+  //       case "og:description":
+  //       case "description":
+  //         obj.description =
+  //           obj.description || ($(item).attr("content") as string);
+  //         break;
+  //       case "og:site_name":
+  //         obj.siteName = $(item).attr("content") as string;
+  //         break;
+  //       case "og:title":
+  //         obj.title = $(item).attr("content") as string;
+  //         break;
+  //       case "og:url":
+  //         obj.url = $(item).attr("content") as string;
+  //         break;
+  //       case "og:image":
+  //         obj.image = $(item).attr("content") as string;
+  //         break;
+  //     }
+  //   });
 
-  kv.set(key, obj);
-  console.log("set cache to " + key);
+  // kv.set(key, obj);
+  // console.log("set cache to " + key);
 
-  return Response.json({
-    status: "ok",
-    result: obj,
-  });
+  return new Response(
+    JSON.stringify({
+      status: "ok",
+      result: obj,
+    }),
+    {
+      headers: { "Content-Type": "application/json" },
+    }
+  );
 }
